@@ -816,6 +816,35 @@
             gap: 20px;
         }
 
+        /* Vložená reklama (každý pátý slot) – přes celý řádek */
+        .embed-ad {
+            grid-column: 1 / -1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            padding: 14px;
+            border-radius: 24px;
+            background: rgba(15, 12, 28, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+        }
+        .embed-ad-label {
+            font-size: 0.7rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: #64748b;
+        }
+        .embed-ad-wrap {
+            width: 100%;
+            max-width: 850px;
+            aspect-ratio: 850 / 480;
+            border-radius: 16px;
+            overflow: hidden;
+            background: #0b0916;
+        }
+        .embed-ad-frame { display: block; width: 100%; height: 100%; border: 0; }
+
         .model-card {
             background: rgba(15, 12, 28, 0.4);
             backdrop-filter: var(--glass-blur);
@@ -1444,6 +1473,30 @@
             }
         }
 
+        // --- vložená reklama (iframe) ---
+        const EMBED_AD_SRC = "https://cbxyz.com/in/?tour=eQof&campaign=wtEc5&track=embed&signup_notice=1&disable_sound=1&mobileRedirect=never";
+
+        function createEmbedAd() {
+            const box = document.createElement('div');
+            box.className = 'embed-ad';
+            // iframe se načte až po potvrzení věku 18+ (data-src -> src)
+            box.innerHTML = `
+                <div class="embed-ad-label">Advertisement</div>
+                <div class="embed-ad-wrap">
+                    <iframe class="embed-ad-frame" data-src="${EMBED_AD_SRC}" title="Advertisement" width="850" height="480" frameborder="0" scrolling="no" loading="lazy"></iframe>
+                </div>
+            `;
+            return box;
+        }
+
+        function loadEmbedAds() {
+            if (!document.documentElement.classList.contains('age-ok')) return;
+            document.querySelectorAll('iframe.embed-ad-frame[data-src]').forEach(f => {
+                f.src = f.dataset.src;
+                f.removeAttribute('data-src');
+            });
+        }
+
         function renderGallery(query = "") {
             grid.innerHTML = "";
             const cleanQuery = query.toLowerCase().trim();
@@ -1466,7 +1519,10 @@
                 noResultsMsg.style.display = "none";
             }
 
-            filtered.forEach(m => {
+            filtered.forEach((m, idx) => {
+                // po každých čtyřech modelkách jeden slot s reklamou (tzn. každý pátý)
+                if (idx > 0 && idx % 4 === 0) grid.appendChild(createEmbedAd());
+
                 const card = document.createElement('a');
                 card.className = "model-card";
                 card.href = m.url;
@@ -1517,6 +1573,7 @@
                 });
                 grid.appendChild(card);
             });
+            loadEmbedAds();
         }
 
         searchBar.addEventListener('input', () => {
@@ -1604,7 +1661,7 @@
         document.getElementById('age-yes').addEventListener('click', () => {
             try { localStorage.setItem('voultAge18', 'yes'); } catch (e) {}
             ageGate.classList.add('closing');
-            setTimeout(() => document.documentElement.classList.add('age-ok'), 450);
+            setTimeout(() => { document.documentElement.classList.add('age-ok'); loadEmbedAds(); }, 450);
         });
         document.getElementById('age-no').addEventListener('click', () => {
             window.location.href = 'https://www.google.com';
